@@ -20,10 +20,10 @@ type App struct {
 	} `yaml:"redis"`
 
 	OAuth2 struct {
-		AccessTokenExp string         `yaml:"access_token_exp"`
+		AccessTokenExp int            `yaml:"access_token_exp"`
 		JWTSignedKey   string         `yaml:"jwt_signed_key"`
 		Client         []OAuth2Client `yaml:"client"`
-	} `yaml:"oauth2"`
+	} `yaml:"oauth2_val"`
 }
 
 type DB struct {
@@ -42,11 +42,11 @@ type Redis struct {
 }
 
 type OAuth2Client struct {
-	ID     string  `yaml:"client_id"`
-	Secret string  `yaml:"client_secret"`
-	Name   string  `yaml:"client_name"`
-	Domain string  `yaml:"client_domain"`
-	Scope  []Scope `yaml:"client_scope"`
+	ID     string  `yaml:"id"`
+	Secret string  `yaml:"secret"`
+	Name   string  `yaml:"name"`
+	Domain string  `yaml:"domain"`
+	Scope  []Scope `yaml:"scope"`
 }
 
 type Scope struct {

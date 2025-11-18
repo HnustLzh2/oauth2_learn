@@ -10,7 +10,7 @@ import (
 var cfg App
 
 func Setup() {
-	path := flag.String("config", "./config.yaml", "path to config file")
+	path := flag.String("config", "../../config.yaml", "path to config file")
 	flag.Parse()
 
 	if path == nil {

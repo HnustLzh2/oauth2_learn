@@ -2,14 +2,19 @@ package model
 
 import (
 	"fmt"
+	"oauth2/config"
+	"time"
+
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"oauth2/config"
-	"time"
 )
 
 var db *gorm.DB
+
+func Setup() {
+	db = DB()
+}
 
 func DB() *gorm.DB {
 	if db != nil {
@@ -21,12 +26,13 @@ func DB() *gorm.DB {
 	switch cfg.Type {
 	case "mysql":
 		// dsn := "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
-		dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
+		dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",
 			cfg.UserName,
 			cfg.Password,
 			cfg.Host,
 			cfg.Port,
 			cfg.DBName)
+		fmt.Println(dsn)
 		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 			Logger: logger.Default.LogMode(logger.Info),
 		})

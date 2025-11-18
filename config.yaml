@@ -1,0 +1,99 @@
+# session 相关配置
+session:
+  name: session_id
+  secret_key: "16lzh_oauth2_server_secret_key"
+  # 过期时间
+  # 单位秒
+  # 默认20分钟
+  max_age: 1200
+
+# 用户登录验证方式
+# 支持: db ldap
+auth_mode: ldap
+
+# 数据库相关配置
+# 这里可以添加多个连接支持
+# 默认是 default 连接
+db:
+  default:
+    type: mysql
+    host: 127.0.0.1
+    port: 3306
+    username: root
+    password: 123456
+    dbname: oauth2nsso
+
+ldap:
+  # 服务地址
+  # 支持 ldap ldaps
+  url: ldap://ldap.forumsys.com
+  # url: ldaps://ldap.rutron.net
+
+  # 查询使用的DN
+  search_dn: cn=read-only-admin,dc=example,dc=com
+  # 查询使用DN的密码
+  search_password: password
+  
+  # 基础DN
+  # 以此为基础开始查找用户
+  base_dn: dc=example,dc=com
+  # 查询用户的Filter
+  # 比如: 
+  #   (&(uid=%s)) 
+  #   或 (&(objectClass=organizationalPerson)(uid=%s))
+  #   其中, (uid=%s) 表示使用 uid 属性检索用户, 
+  #   %s 为用户名, 这一段必须要有, 可以替换 uid 以使用其他属性检索用户名
+  filter: (&(uid=%s))
+
+# 可选
+# redis 相关配置
+# 可以提供:
+# - 统一回话存储
+# - oauth2_val client 存储
+redis:
+  default:
+    addr: 127.0.0.1:6379
+    password: 
+    db: 0
+
+# oauth2_val 相关配置
+oauth2:
+  # access_token 过期时间
+  # 单位小时
+  # 默认2小时
+  access_token_exp: 2
+  # 签名 jwt access_token 时所用 key
+  jwt_signed_key: "16lzh"
+  
+  # oauth2_val 客户端配置
+  # 数组类型
+  # 可配置多客户端
+  client:
+
+      # 客户端id 必须全局唯一
+    - id: app_1
+      # 客户端 secret
+      secret: app_1_secret
+      # 应用名 在页面上必要时进行显示
+      name: app1
+      # 客户端 domain
+      # !!注意 http/https 不要写错!!
+      domain: http://localhost:9093
+      # 权限范围
+      # 数组类型
+      # 可以配置多个权限 
+      # 颁发的 access_token 中会包含该值 资源方可以对该值进行验证
+      scope:
+          # 权限范围 id 唯一
+        - id: all
+          # 权限范围名称
+          # 会在页面（登录页面）进行展示
+          title: "用户账号、手机、权限、角色等信息"
+
+    - id: app_2
+      secret: app_2_secret
+      name: app2
+      domain: http://localhost:9094
+      scope:
+        - id: all
+          title: 用户账号, 手机, 权限, 角色等信息
