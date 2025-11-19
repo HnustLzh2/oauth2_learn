@@ -10,15 +10,19 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-var db *gorm.DB
+var GlobalDB *gorm.DB
 
 func Setup() {
-	db = DB()
+	GlobalDB = DB()
+	err := GlobalDB.AutoMigrate(User{})
+	if err != nil {
+		panic(err)
+	}
 }
 
 func DB() *gorm.DB {
-	if db != nil {
-		return db
+	if GlobalDB != nil {
+		return GlobalDB
 	}
 	var err error
 	cfg := config.GetCfg().DB.Default
@@ -33,7 +37,7 @@ func DB() *gorm.DB {
 			cfg.Port,
 			cfg.DBName)
 		fmt.Println(dsn)
-		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+		GlobalDB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 			Logger: logger.Default.LogMode(logger.Info),
 		})
 	case "postgres":
@@ -42,14 +46,14 @@ func DB() *gorm.DB {
 	if err != nil {
 		panic(err)
 	}
-	sqlDb, err := db.DB()
+	sqlDb, err := GlobalDB.DB()
 	if err != nil {
 		panic(err)
 	}
 	sqlDb.SetMaxIdleConns(10)
 	sqlDb.SetMaxOpenConns(100)
 	sqlDb.SetConnMaxLifetime(time.Hour)
-	return db
+	return GlobalDB
 }
 
 type Model struct {

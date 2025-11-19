@@ -16,14 +16,15 @@ type App struct {
 	LDAP LDAP `yaml:"ldap"`
 
 	Redis struct {
-		Default Redis `yaml:"redis"`
+		Default Redis `yaml:"default"`
 	} `yaml:"redis"`
 
 	OAuth2 struct {
 		AccessTokenExp int            `yaml:"access_token_exp"`
 		JWTSignedKey   string         `yaml:"jwt_signed_key"`
+		TokenStore     string         `yaml:"token_store"`
 		Client         []OAuth2Client `yaml:"client"`
-	} `yaml:"oauth2_val"`
+	} `yaml:"oauth2"`
 }
 
 type DB struct {

@@ -1,0 +1,63 @@
+{
+  "Session": {
+    "Name": "session_id",
+    "SecretKey": "16lzh_oauth2_server_secret_key",
+    "MaxAge": 1200
+  },
+  "AuthMode": "db",
+  "DB": {
+    "Default": {
+      "Type": "mysql",
+      "Host": "127.0.0.1",
+      "Port": 3306,
+      "UserName": "root",
+      "Password": "123456",
+      "DBName": "oauth2sso"
+    }
+  },
+  "LDAP": {
+    "URL": "ldap://ldap.forumsys.com",
+    "SearchDN": "cn=read-only-admin,dc=example,dc=com",
+    "SearchPassword": "password",
+    "BaseDN": "dc=example,dc=com",
+    "Filter": "(\u0026(uid=%s))"
+  },
+  "Redis": {
+    "Default": {
+      "Addr": "127.0.0.1:6379",
+      "Password": "",
+      "DB": 0
+    }
+  },
+  "OAuth2": {
+    "AccessTokenExp": 2,
+    "JWTSignedKey": "16lzh",
+    "TokenStore": "mysql",
+    "Client": [
+      {
+        "ID": "app_1",
+        "Secret": "app_1_secret",
+        "Name": "app1",
+        "Domain": "http://localhost:9093",
+        "Scope": [
+          {
+            "ID": "all",
+            "Title": "用户账号、手机、权限、角色等信息"
+          }
+        ]
+      },
+      {
+        "ID": "app_2",
+        "Secret": "app_2_secret",
+        "Name": "app2",
+        "Domain": "http://localhost:9094",
+        "Scope": [
+          {
+            "ID": "all",
+            "Title": "用户账号, 手机, 权限, 角色等信息"
+          }
+        ]
+      }
+    ]
+  }
+}

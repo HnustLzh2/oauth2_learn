@@ -9,7 +9,7 @@ session:
 
 # 用户登录验证方式
 # 支持: db ldap
-auth_mode: ldap
+auth_mode: db
 
 # 数据库相关配置
 # 这里可以添加多个连接支持
@@ -21,7 +21,7 @@ db:
     port: 3306
     username: root
     password: 123456
-    dbname: oauth2nsso
+    dbname: oauth2sso
 
 ldap:
   # 服务地址
@@ -64,7 +64,9 @@ oauth2:
   access_token_exp: 2
   # 签名 jwt access_token 时所用 key
   jwt_signed_key: "16lzh"
-  
+
+  # token存储方式
+  token_store: mysql # mysql, redis, memory
   # oauth2_val 客户端配置
   # 数组类型
   # 可配置多客户端

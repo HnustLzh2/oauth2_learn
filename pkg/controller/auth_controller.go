@@ -1,8 +1,6 @@
 package controller
 
 import (
-	"encoding/json"
-	"github.com/gin-gonic/gin"
 	"html/template"
 	"log"
 	"net/http"
@@ -15,6 +13,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 // getProjectRoot 获取项目根目录（go.mod所在目录）
@@ -64,6 +64,23 @@ func errorHandler(w http.ResponseWriter, message string, status int) {
 		t.Execute(w, body)
 	}
 }
+
+func abortWithMessage(ctx *gin.Context, status int, message string) {
+	errorHandler(ctx.Writer, message, status)
+	ctx.Abort()
+}
+
+func renderLoginTemplate(ctx *gin.Context, data TplData) {
+	t, err := template.ParseFiles(GetTemplatePath("tpl/login.html"))
+	if err != nil {
+		abortWithMessage(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if err := t.Execute(ctx.Writer, data); err != nil {
+		abortWithMessage(ctx, http.StatusInternalServerError, err.Error())
+	}
+}
+
 func AuthorizeHandler(ctx *gin.Context) {
 	var form url.Values
 	if v, _ := session.Get(ctx.Request, "RequestForm"); v != nil {
@@ -95,7 +112,7 @@ type TplData struct {
 func LoginHandler(ctx *gin.Context) {
 	form, _ := session.Get(ctx.Request, "RequestForm")
 	if form == nil {
-		errorHandler(ctx.Writer, "无效的请求", http.StatusInternalServerError)
+		abortWithMessage(ctx, http.StatusInternalServerError, "无效的请求")
 		return
 	}
 	clientID := form.(url.Values).Get("client_id")
@@ -106,45 +123,33 @@ func LoginHandler(ctx *gin.Context) {
 		Scope:  config.ScopeFilter(clientID, scope),
 	}
 	if data.Scope == nil {
-		errorHandler(ctx.Writer, "无效的权限范围", http.StatusBadRequest)
+		abortWithMessage(ctx, http.StatusBadRequest, "无效的权限范围")
 		return
 	}
 	var userID string
-	var err error
-	if ctx.Request.Form == nil {
-		err = ctx.Request.ParseForm()
-		if err != nil {
-			errorHandler(ctx.Writer, err.Error(), http.StatusBadRequest)
-			return
-		}
-	}
 	// 进行登入验证
-	if ctx.Request.Form.Get("type") == "password" {
+	if ctx.PostForm("type") == "password" {
 		var user model.User
-		userIDUint, err1 := user.Authentication(ctx, ctx.Request.Form.Get("client_id"), ctx.Request.Form.Get("username"), ctx.Request.Form.Get("password"))
+		userIDUint, err := user.Authentication(ctx, clientID, ctx.PostForm("username"), ctx.PostForm("password"))
 		userID = strconv.Itoa(int(userIDUint))
-		err = err1
 		if err != nil {
 			data.Error = err.Error()
-			t, _ := template.ParseFiles(GetTemplatePath("tpl/login.html"))
-			t.Execute(ctx.Writer, data)
+			renderLoginTemplate(ctx, data)
 			return
 		}
 	}
 	// 可以进行其他方式的验证
-	err = session.Set(ctx.Writer, ctx.Request, "LoggedInUserID", userID)
-	if err != nil {
-		errorHandler(ctx.Writer, err.Error(), http.StatusInternalServerError)
+	if err := session.Set(ctx.Writer, ctx.Request, "LoggedInUserID", userID); err != nil {
+		abortWithMessage(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
-	ctx.Writer.Header().Set("Location", "/authorize")
-	ctx.Writer.WriteHeader(http.StatusFound)
+	ctx.Redirect(http.StatusFound, "/authorize")
 }
 
 func GETloginHandler(ctx *gin.Context) {
 	form, _ := session.Get(ctx.Request, "RequestForm")
 	if form == nil {
-		errorHandler(ctx.Writer, "无效的请求", http.StatusInternalServerError)
+		abortWithMessage(ctx, http.StatusInternalServerError, "无效的请求")
 		return
 	}
 	clientID := form.(url.Values).Get("client_id")
@@ -155,30 +160,16 @@ func GETloginHandler(ctx *gin.Context) {
 		Scope:  config.ScopeFilter(clientID, scope),
 	}
 	if data.Scope == nil {
-		errorHandler(ctx.Writer, "无效的权限范围", http.StatusBadRequest)
+		abortWithMessage(ctx, http.StatusBadRequest, "无效的权限范围")
 		return
 	}
 	// 如果为GET方法就直接返回登录页面
-	t, err := template.ParseFiles(GetTemplatePath("tpl/login.html"))
-	if err != nil {
-		errorHandler(ctx.Writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if err := t.Execute(ctx.Writer, data); err != nil {
-		errorHandler(ctx.Writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	renderLoginTemplate(ctx, data)
 }
 
 func LogoutHandler(ctx *gin.Context) {
-	if ctx.Request.Form == nil {
-		if err := ctx.Request.ParseForm(); err != nil {
-			errorHandler(ctx.Writer, err.Error(), http.StatusBadRequest)
-			return
-		}
-	}
 	// 检查redirect_uri参数
-	redirectURI := ctx.Request.Form.Get("redirect_uri")
+	redirectURI := ctx.Query("redirect_uri")
 	if redirectURI == "" {
 		errorHandler(ctx.Writer, "参数不能为空(redirect_uri)", http.StatusBadRequest)
 		return
@@ -208,24 +199,21 @@ func TokenHandler(ctx *gin.Context) {
 func VerifyHandler(ctx *gin.Context) {
 	token, err := oauth2_val.Srv.ValidationBearerToken(ctx.Request)
 	if err != nil {
-		http.Error(ctx.Writer, err.Error(), http.StatusUnauthorized)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 	cli, err := oauth2_val.Mgr.GetClient(ctx.Request.Context(), token.GetClientID())
 	if err != nil {
-		http.Error(ctx.Writer, err.Error(), http.StatusBadRequest)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	data := map[string]interface{}{
+	ctx.JSON(http.StatusOK, gin.H{
 		"expires_in": int64(time.Until(token.GetAccessCreateAt().Add(token.GetAccessExpiresIn())).Seconds()),
 		"user_id":    token.GetUserID(),
 		"client_id":  token.GetClientID(),
 		"scope":      token.GetScope(),
 		"domain":     cli.GetDomain(),
-	}
-	e := json.NewEncoder(ctx.Writer)
-	e.SetIndent("", "  ")
-	e.Encode(data)
+	})
 }
 
 func NotFoundHandler(ctx *gin.Context) {
